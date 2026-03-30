@@ -1,0 +1,176 @@
+name: Build VibeRandom
+
+on:
+  push:
+    branches: [ main, master ]
+    tags:
+      - 'v*'
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    name: Build Windows EXE
+    runs-on: windows-latest
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+        
+      - name: 🐍 Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          
+      - name: 📦 Install dependencies
+        shell: bash
+        run: |
+          python -m pip install --upgrade pip
+          pip install customtkinter pillow pyinstaller
+          pip list
+          
+      - name: 🎨 Create application icon
+        shell: bash
+        run: |
+          python -c "
+          from PIL import Image, ImageDraw
+          sizes = [16, 32, 48, 64, 128, 256]
+          frames = []
+          for size in sizes:
+              img = Image.new('RGBA', (size, size), (0, 0, 0, 0))
+              draw = ImageDraw.Draw(img)
+              for y in range(size):
+                  r = int(139 + (59 - 139) * y / size)
+                  g = int(92 + (130 - 92) * y / size)
+                  b = int(246 + (255 - 246) * y / size)
+                  draw.rectangle([(0, y), (size, y+1)], fill=(r, g, b, 255))
+              frames.append(img)
+          frames[0].save('viberandom.ico', format='ICO', sizes=[(s, s) for s in sizes], append_images=frames[1:])
+          print('✅ Icon created: viberandom.ico')
+          "
+          
+      - name: 🔨 Build EXE with PyInstaller
+        shell: bash
+        run: |
+          pyinstaller --onefile --windowed --icon=viberandom.ico --name=VibeRandom main.py
+          
+      - name: 📦 Upload Windows EXE
+        uses: actions/upload-artifact@v4
+        with:
+          name: VibeRandom-Windows
+          path: dist/VibeRandom.exe
+          retention-days: 30
+          
+      - name: 📦 Create Release (on tag)
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/VibeRandom.exe
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build-linux:
+    name: Build Linux Executable
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+        
+      - name: 🐍 Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          
+      - name: 📦 Install dependencies
+        shell: bash
+        run: |
+          python -m pip install --upgrade pip
+          pip install customtkinter pillow pyinstaller
+          pip list
+          
+      - name: 🎨 Create application icon
+        shell: bash
+        run: |
+          python -c "
+          from PIL import Image, ImageDraw
+          sizes = [16, 32, 48, 64, 128, 256]
+          frames = []
+          for size in sizes:
+              img = Image.new('RGBA', (size, size), (0, 0, 0, 0))
+              draw = ImageDraw.Draw(img)
+              for y in range(size):
+                  r = int(139 + (59 - 139) * y / size)
+                  g = int(92 + (130 - 92) * y / size)
+                  b = int(246 + (255 - 246) * y / size)
+                  draw.rectangle([(0, y), (size, y+1)], fill=(r, g, b, 255))
+              frames.append(img)
+          frames[0].save('viberandom.png', format='PNG')
+          print('✅ Icon created: viberandom.png')
+          "
+          
+      - name: 🔨 Build Linux executable
+        shell: bash
+        run: |
+          pyinstaller --onefile --windowed --icon=viberandom.png --name=VibeRandom main.py
+          
+      - name: 📦 Upload Linux executable
+        uses: actions/upload-artifact@v4
+        with:
+          name: VibeRandom-Linux
+          path: dist/VibeRandom
+          retention-days: 30
+
+  build-macos:
+    name: Build macOS App
+    runs-on: macos-latest
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+        
+      - name: 🐍 Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          
+      - name: 📦 Install dependencies
+        shell: bash
+        run: |
+          python -m pip install --upgrade pip
+          pip install customtkinter pillow pyinstaller
+          pip list
+          
+      - name: 🎨 Create application icon
+        shell: bash
+        run: |
+          python -c "
+          from PIL import Image, ImageDraw
+          size = 512
+          img = Image.new('RGBA', (size, size), (0, 0, 0, 0))
+          draw = ImageDraw.Draw(img)
+          for y in range(size):
+              r = int(139 + (59 - 139) * y / size)
+              g = int(92 + (130 - 92) * y / size)
+              b = int(246 + (255 - 246) * y / size)
+              draw.rectangle([(0, y), (size, y+1)], fill=(r, g, b, 255))
+          img.save('viberandom.png', format='PNG')
+          print('✅ Icon created: viberandom.png')
+          "
+          
+      - name: 🔨 Build macOS app
+        shell: bash
+        run: |
+          pyinstaller --onefile --windowed --icon=viberandom.png --name=VibeRandom main.py
+          
+      - name: 📦 Upload macOS app
+        uses: actions/upload-artifact@v4
+        with:
+          name: VibeRandom-macOS
+          path: dist/VibeRandom.app
+          retention-days: 30
